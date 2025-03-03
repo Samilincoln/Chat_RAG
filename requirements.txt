@@ -1,0 +1,7 @@
+streamlit
+langchain_huggingface
+langchain_community
+langchain_groq
+langchain_core
+python-decouple
+asyncio

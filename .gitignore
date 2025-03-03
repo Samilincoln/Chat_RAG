@@ -1,0 +1,6 @@
+\myenv\
+.env
+myvenv\
+pycache\
+\chromadb\
+*.pyc
