@@ -6,8 +6,11 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from scraper.scraper import process_urls
-from embedding.vector_store import initialize_vector_store
+from embedding.vector_store import initialize_vector_store, clear_chroma_db
+from conversation.talks import clean_input, small_talks
 
+#Clearing ChromaDB at startup to clean up any previous data
+clear_chroma_db()
 
 
 
@@ -19,21 +22,21 @@ groq_api = config("GROQ_API_KEY")
 llm = ChatGroq(model="llama-3.2-1b-preview", groq_api_key=groq_api, temperature=0)
 
 # ✅ System Prompt with history
-system_prompt = """
-You are a conversational AI assistant capable of answering user queries.
+system_prompt = (
+"""
+You are Botty an AI assistant that answers questions **strictly based on the retrieved context**.
 
-- **For factual questions**, use **only** the retrieved context below. If the answer is not in the context, say **"I don't know."**  
-- **For general conversational inputs** (e.g., greetings like hi, hello and other small talks), respond naturally.  
-- **Do not make assumptions or generate false information.**  
+- **If the answer is found in the context, respond concisely.**  
+- **If the answer is NOT in the context, reply ONLY with: "I can't find your request in the provided context."**   
+- **If the question is unrelated to the provided context, reply ONLY with: "I can't answer that."**  
+- **DO NOT use external knowledge or assumptions.**  
 
-**Chat History:**  
-{history}
-
-**Context:**  
+Context:  
 {context}  
 
-Now, answer concisely.
+Now, respond accordingly.
 """
+)
 
 #Chat Prompt
 prompt = ChatPromptTemplate(
@@ -54,14 +57,15 @@ def run_asyncio_coroutine(coro):
     asyncio.set_event_loop(loop)
     return loop.run_until_complete(coro)
 
-#Streamlit
+import streamlit as st
+
 st.title("Botty 1.0 🤖")
 
-#url inputs
+# URL inputs
 urls = st.text_area("Enter URLs (one per line)")
 run_scraper = st.button("Run Scraper", disabled=not urls.strip())
 
-#Sessions & states
+# Sessions & states
 if "messages" not in st.session_state:
     st.session_state.messages = []  # Chat history
 if "history" not in st.session_state:
@@ -71,7 +75,7 @@ if "scraping_done" not in st.session_state:
 if "vector_store" not in st.session_state:
     st.session_state.vector_store = None
 
-#Run scraper
+# Run scraper
 if run_scraper:
     st.write("Fetching and processing URLs... This may take a while.")
     split_docs = run_asyncio_coroutine(process_urls(urls.split("\n")))
@@ -79,51 +83,69 @@ if run_scraper:
     st.session_state.scraping_done = True
     st.success("Scraping and processing completed!")
 
-
-
-#Ensuring chat only enables after scraping
+# Ensuring chat only enables after scraping
 if not st.session_state.scraping_done:
     st.warning("Scrape some data first to enable chat!")
 else:
     st.write("### Chat With Botty 💬")
 
-    #Display chat history
+    # Display chat history
     for message in st.session_state.messages:
         role, text = message["role"], message["text"]
         with st.chat_message(role):
             st.write(text)
 
-    #Takes in user Input
+    # Takes in user input
     user_query = st.chat_input("Ask a question...")
 
     if user_query:
-        #Show user's message
         st.session_state.messages.append({"role": "user", "text": user_query})
         with st.chat_message("user"):
             st.write(user_query)
 
-        #Retrieval
-        retriever = st. session_state.vector_store.as_retriever(search_kwargs={'k': 3})
-        scraper_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
-        llm_chain = create_retrieval_chain(retriever, scraper_chain)
+        user_query_cleaned = clean_input(user_query)
+        response = "" # Default value for response
+        source_url = ""  # Default value for source url
 
-        #Memory update
-        history_text = "\n".join(
-            [f"User: {msg['text']}" if msg["role"] == "user" else f"AI: {msg['text']}" for msg in st.session_state.messages]
-        )
-        st.session_state.history = history_text
+        # Check for small talk responses
+        if user_query_cleaned in small_talks:
+            response = small_talks[user_query_cleaned]
+            source_url = "Knowledge base"  # Small talk comes from the knowledge base
+            
+        else:
+            retriever = st.session_state.vector_store.as_retriever(search_kwargs={'k': 5})
+            scraper_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
+            llm_chain = create_retrieval_chain(retriever, scraper_chain)
 
-        #Context retrieve
-        retrieved_docs = retriever.invoke(user_query)
-        response = llm_chain.invoke({"input": user_query, "history": st.session_state.history})
+            # Retrieve context
+            retrieved_docs = retriever.invoke(user_query_cleaned)
+            #retrieved_text = " ".join([doc.page_content for doc in retrieved_docs])  # Combine retrieved docs into a single string
 
-        answer = response["answer"]
-        source_url = retrieved_docs[0].metadata.get("source", "Unknown") if retrieved_docs else "No source found"
 
-        #Format response with memory tracking
-        formatted_response = f"**Answer:** {answer}\n\n**Source:** {source_url}"
+            if retrieved_docs:
+                response = llm_chain.invoke({"input": user_query_cleaned})["answer"]  
+                source_url = retrieved_docs[0].metadata.get("source", "Unknown")
+                
+                # Ensuring the response is not empty
+                if not response.strip():
+                    response = "I can't find your request in the provided context."
+                    source_url = "No source found"  # No source if no real answer
+            else:
+                response = "I can't find your request in the provided context."
+                source_url = ""  # No misleading source URL
 
-        #Store and display bot response
+            # ✅ Memory Tracking & Response Formatting
+            history_text = "\n".join(
+                [f"User: {msg['text']}" if msg["role"] == "user" else f"AI: {msg['text']}" for msg in st.session_state.messages]
+            )
+            st.session_state.history = history_text  # Update history
+
+        formatted_response = f"**Answer:** {response}"
+        if response != "I can't find your request in the provided context." and source_url:
+            formatted_response += f"\n\n**Source:** {source_url}"
+
+        # ✅ Append formatted response
         st.session_state.messages.append({"role": "assistant", "text": formatted_response})
         with st.chat_message("assistant"):
             st.write(formatted_response)
+

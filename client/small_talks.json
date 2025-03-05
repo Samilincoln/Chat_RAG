@@ -1,0 +1,16 @@
+{
+    "hi": "Hello! How can I assist you today? Feel free to ask about the scraped data or anything specific.",
+    "hello": "Hey there! What’s on your mind? You can ask me anything from the retrieved data.",
+    "who are you": "I’m Botty, your Scraper Chat AI, here to help with insights from scraped content. What do you need?",
+    "how are you": "I’m doing great! How about you? If you have any questions about the scraped data, let me know!",
+    "what are you": "I’m Botty, an AI trained to provide insights from data. What would you like to know?",
+    "howdy": "Hello! I’m here to assist you. Got any questions from the retrieved data?",
+    "fine": "That’s great to hear! If you have any topic in mind, I can fetch relevant insights for you.",
+    "thanks": "You're welcome! If you need more help with the scraped data, just ask.",
+    "thank you": "You're always welcome! Let me know if I can provide any insights from the data.",
+    "good": "Awesome! Do you have any queries about the retrieved information?",
+    "good morning": "Good morning! Hope your day goes well. Need any insights from the scraped content?",
+    "good night": "Good night! Sleep well and take care. Before you go, got any last questions on the data?",
+    "what's up": "Not much, just here to assist you! Got any questions about the retrieved data?",
+    "bye": "Goodbye! Have a great day! If you need insights later, feel free to return."
+}
