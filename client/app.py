@@ -24,7 +24,7 @@ llm = ChatGroq(model="llama-3.2-1b-preview", groq_api_key=groq_api, temperature=
 # ✅ System Prompt with history
 system_prompt = (
 """
-You are Botty an AI assistant that answers questions **strictly based on the retrieved context**.
+You are WebGPT an AI assistant that answers questions **strictly based on the retrieved context**.
 
 - **If the answer is found in the context, respond concisely.**  
 - **If the answer is NOT in the context, reply ONLY with: "I can't find your request in the provided context."**   
@@ -59,7 +59,7 @@ def run_asyncio_coroutine(coro):
 
 import streamlit as st
 
-st.title("Botty 1.0 🤖")
+st.title("WebGPT 1.0 🤖")
 
 # URL inputs
 urls = st.text_area("Enter URLs (one per line)")
@@ -87,7 +87,7 @@ if run_scraper:
 if not st.session_state.scraping_done:
     st.warning("Scrape some data first to enable chat!")
 else:
-    st.write("### Chat With Botty 💬")
+    st.write("### Chat With WebGPT 💬")
 
     # Display chat history
     for message in st.session_state.messages:

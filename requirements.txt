@@ -1,7 +1,8 @@
 streamlit
 langchain_huggingface
 langchain_community
-langchain_groq
-langchain_core
+langchain
+itertools
 python-decouple
 asyncio
+
