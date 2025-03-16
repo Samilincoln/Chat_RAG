@@ -4,7 +4,8 @@ import asyncio
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.messages import SystemMessage
 from scraper.scraper import process_urls
 from embedding.vector_store import initialize_vector_store, clear_chroma_db
 from conversation.talks import clean_input, small_talks
@@ -21,30 +22,7 @@ groq_api = config("GROQ_API_KEY")
 #Initializing LLM with memory
 llm = ChatGroq(model="llama-3.2-1b-preview", groq_api_key=groq_api, temperature=0)
 
-# ✅ System Prompt with history
-system_prompt = (
-"""
-You are WebGPT an AI assistant that answers questions **strictly based on the retrieved context**.
 
-- **If the answer is found in the context, respond concisely.**  
-- **If the answer is NOT in the context, reply ONLY with: "I can't find your request in the provided context."**   
-- **If the question is unrelated to the provided context, reply ONLY with: "I can't answer that."**  
-- **DO NOT use external knowledge or assumptions.**  
-
-Context:  
-{context}  
-
-Now, respond accordingly.
-"""
-)
-
-#Chat Prompt
-prompt = ChatPromptTemplate(
-    [
-        ("system", system_prompt),
-        ("human", "{input}")
-    ]
-)
 
 #Ensure proper asyncio handling for Windows
 import sys
@@ -113,38 +91,75 @@ else:
             source_url = "Knowledge base"  # Small talk comes from the knowledge base
             
         else:
-            retriever = st.session_state.vector_store.as_retriever(search_kwargs={'k': 5})
-            scraper_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
+            # ✅ Setup retriever (with a similarity threshold or top-k retrieval)
+            retriever = st.session_state.vector_store.as_retriever(
+                search_kwargs={'k': 5}
+            )
+
+            # ✅ Retrieve context
+            retrieved_docs = retriever.invoke(user_query_cleaned)
+            retrieved_text = " ".join([doc.page_content for doc in retrieved_docs])
+
+            # ✅ Define Langchain PromptTemplate properly
+            system_prompt_template = PromptTemplate(
+                input_variables=["context", "query"],
+                template="""
+                You are WebGPT, an AI assistant for question-answering tasks that **only answers questions based on the provided context**.
+
+                - If the answer is **not** found in the Context, reply with: "I can't find your request in the provided context."
+                - If the question is **unrelated** to the Context, reply with: "I can't answer that."
+                - **Do not** use external knowledge, assumptions, or filler responses. Stick to the context provided.
+                - Keep responses clear, concise, and relevant to the user’s query.
+
+                Context:
+                {context}
+
+                Now, answer the user's question:
+                {input}
+                """
+            )
+
+            # ✅ Generate prompt with retrieved context & user query
+            final_prompt = system_prompt_template.format(
+                context=retrieved_text,
+                input=user_query_cleaned
+            )
+
+            # ✅ Create chains (ensure the prompt is correct)
+            scraper_chain = create_stuff_documents_chain(llm=llm, prompt=system_prompt_template)
             llm_chain = create_retrieval_chain(retriever, scraper_chain)
 
-            # Retrieve context
-            retrieved_docs = retriever.invoke(user_query_cleaned)
-            #retrieved_text = " ".join([doc.page_content for doc in retrieved_docs])  # Combine retrieved docs into a single string
-
-
+            # ✅ Process response and source
             if retrieved_docs:
-                response = llm_chain.invoke({"input": user_query_cleaned})["answer"]  
-                source_url = retrieved_docs[0].metadata.get("source", "Unknown")
-                
-                # Ensuring the response is not empty
-                if not response.strip():
-                    response = "I can't find your request in the provided context."
-                    source_url = "No source found"  # No source if no real answer
+                try:
+                    response_data = llm_chain.invoke({"context": retrieved_text, "input": user_query_cleaned})
+                    response = response_data.get("answer", "").strip()
+                    source_url = retrieved_docs[0].metadata.get("source", "Unknown")
+
+                    # Fallback if response is still empty
+                    if not response:
+                        response = "I can't find your request in the provided context."
+                        source_url = "No source found"
+                        
+                except Exception as e:
+                    response = f"Error generating response: {str(e)}"
+                    source_url = "Error"
+
             else:
                 response = "I can't find your request in the provided context."
-                source_url = ""  # No misleading source URL
+                source_url = "No source found"
 
-            # ✅ Memory Tracking & Response Formatting
+            # ✅ Track history & update session state
             history_text = "\n".join(
                 [f"User: {msg['text']}" if msg["role"] == "user" else f"AI: {msg['text']}" for msg in st.session_state.messages]
             )
-            st.session_state.history = history_text  # Update history
+            st.session_state.history = history_text
 
+        # ✅ Format and display response
         formatted_response = f"**Answer:** {response}"
         if response != "I can't find your request in the provided context." and source_url:
             formatted_response += f"\n\n**Source:** {source_url}"
 
-        # ✅ Append formatted response
         st.session_state.messages.append({"role": "assistant", "text": formatted_response})
         with st.chat_message("assistant"):
             st.write(formatted_response)

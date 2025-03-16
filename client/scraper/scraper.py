@@ -15,7 +15,7 @@ async def process_urls(urls, persist_directory="./chroma_db"):
     transformed_docs = text_transformer.transform_documents(docs)
 
     # ✅ Split text into chunks and retain metadata
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=300)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     split_docs_nested = [text_splitter.split_documents([doc]) for doc in transformed_docs]
     split_docs = list(chain.from_iterable(split_docs_nested))
 

@@ -12,5 +12,8 @@
     "good morning": "Good morning! Hope your day goes well. Need any insights from the scraped content?",
     "good night": "Good night! Sleep well and take care. Before you go, got any last questions on the data?",
     "what's up": "Not much, just here to assist you! Got any questions about the retrieved data?",
-    "bye": "Goodbye! Have a great day! If you need insights later, feel free to return."
+    "bye": "Goodbye! Have a great day! If you need insights later, feel free to return.",
+    "okay Thank you": "You're welcome! If you have more questions about the scraped data, don’t hesitate to ask.",
+    "okay": "Alright! If you need any insights from the retrieved data, feel free to ask.",
+    "thanks a lot": "You're welcome! If you need more help with the scraped data, just ask."   
 }
