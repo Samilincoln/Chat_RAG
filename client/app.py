@@ -61,6 +61,12 @@ if run_scraper:
     st.session_state.scraping_done = True
     st.success("Scraping and processing completed!")
 
+# ✅ Clear chat button
+if st.button("Clear Chat"):
+    st.session_state.messages = []  # Reset message history
+    st.session_state.history = ""  # Reset history tracking
+    st.success("Chat cleared!")
+
 # Ensuring chat only enables after scraping
 if not st.session_state.scraping_done:
     st.warning("Scrape some data first to enable chat!")
@@ -106,8 +112,9 @@ else:
                 template="""
                 You are WebGPT, an AI assistant for question-answering tasks that **only answers questions based on the provided context**.
 
+                - Understand the context first and provide a relevant answer.
                 - If the answer is **not** found in the Context, reply with: "I can't find your request in the provided context."
-                - If the question is **unrelated** to the Context, reply with: "I can't answer that."
+                - If the question is **unrelated** to the Context, reply with: "I can't answer that. do not generate responses."
                 - **Do not** use external knowledge, assumptions, or filler responses. Stick to the context provided.
                 - Keep responses clear, concise, and relevant to the user’s query.
 

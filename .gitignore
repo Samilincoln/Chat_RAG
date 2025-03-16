@@ -4,3 +4,4 @@ myvenv\
 pycache\
 \chromadb\
 *.pyc
+\chromadb\
