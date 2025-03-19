@@ -11,7 +11,7 @@ from embedding.vector_store import initialize_vector_store, clear_chroma_db
 from conversation.talks import clean_input, small_talks
 
 #Clearing ChromaDB at startup to clean up any previous data
-clear_chroma_db()
+#clear_chroma_db()
 
 
 
