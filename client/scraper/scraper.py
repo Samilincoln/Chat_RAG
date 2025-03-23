@@ -2,12 +2,23 @@ from langchain_community.document_loaders import AsyncChromiumLoader
 from langchain_community.document_transformers import Html2TextTransformer
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from itertools import chain
+from playwright.async_api import async_playwright
+
+class CustomAsyncChromiumLoader(AsyncChromiumLoader):
+    async def _fetch(self, url):
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+            await page.goto(url)
+            content = await page.content()
+            await browser.close()
+            return content
 
 
 async def process_urls(urls, persist_directory="./chroma_db"):
     # Clear ChromaDB when new links are added
 
-    loader = AsyncChromiumLoader(urls)
+    loader = CustomAsyncChromiumLoader(urls)
     docs = await loader.aload()
 
     # ✅ Transform HTML to text
