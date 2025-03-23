@@ -11,7 +11,7 @@ from embedding.vector_store import initialize_vector_store, clear_chroma_db
 from conversation.talks import clean_input, small_talks
 
 #Clearing ChromaDB at startup to clean up any previous data
-clear_chroma_db()
+#clear_chroma_db()
 
 
 
@@ -31,9 +31,12 @@ if sys.platform.startswith("win"):
 
 #Async helper function
 def run_asyncio_coroutine(coro):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    return loop.run_until_complete(coro)
+        try:
+        return asyncio.run(coro)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(coro)
 
 import streamlit as st
 
