@@ -6,4 +6,6 @@ langchain_groq
 python-decouple
 asyncio
 playwright
+html2text
+chromadb
 
