@@ -31,7 +31,7 @@ if sys.platform.startswith("win"):
 
 #Async helper function
 def run_asyncio_coroutine(coro):
-        try:
+    try:
         return asyncio.run(coro)
     except RuntimeError:
         loop = asyncio.new_event_loop()
