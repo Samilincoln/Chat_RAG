@@ -13,7 +13,7 @@ import nest_asyncio
 
 nest_asyncio.apply()
 #Clearing ChromaDB at startup to clean up any previous data
-#clear_chroma_db()
+clear_chroma_db()
 
 
 
@@ -32,16 +32,15 @@ if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 #Async helper function
-"""def run_asyncio_coroutine(coro):
+def run_asyncio_coroutine(coro):
     try:
         return asyncio.run(coro)
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        return loop.run_until_complete(coro)"""
+        return loop.run_until_complete(coro)
 
-def run_asyncio_coroutine(coro):
-    return asyncio.run_coroutine_threadsafe(coro, asyncio.get_event_loop()).result()
+
 
 import streamlit as st
 
