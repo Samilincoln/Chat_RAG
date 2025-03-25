@@ -10,6 +10,7 @@ from scraper.scraper import process_urls
 from embedding.vector_store import initialize_vector_store, clear_chroma_db
 from conversation.talks import clean_input, small_talks
 import nest_asyncio
+import sys
 
 nest_asyncio.apply()
 #Clearing ChromaDB at startup to clean up any previous data
@@ -31,19 +32,13 @@ import sys
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-#Async helper function
-"""def run_asyncio_coroutine(coro):
+def run_asyncio_coroutine(coro):
     try:
         return asyncio.run(coro)
     except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        return loop.run_until_complete(coro)"""
+        return asyncio.get_event_loop().run_until_complete(coro)
 
-def run_asyncio_coroutine(coro):
-    return asyncio.run_coroutine_threadsafe(coro, asyncio.get_event_loop()).result()
 
-import streamlit as st
 
 st.title("WebGPT 1.0 🤖")
 
