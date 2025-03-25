@@ -13,7 +13,7 @@ Follow these steps to set up and run the Chat_RAG project:
 2. **Navigate to the Project Directory:**
     Change your current directory to the project directory:
     ```sh
-    cd Chat_RAG
+    cd client
     ```
 
 3. **Install Required Dependencies:**
