@@ -1,4 +1,4 @@
-# Chat_RAG
+# WebGPT1.0
 
 ## Steps to Run the Project
 
@@ -7,7 +7,7 @@ Follow these steps to set up and run the Chat_RAG project:
 1. **Clone the Repository:**
     Begin by cloning the repository to your local machine using the following command:
     ```sh
-    git clone https://github.com/Samilincoln/Chat_RAG.git
+    git clone https://github.com/Samilincoln/WebGPT1.0.git
     ```
 
 2. **Navigate to the Project Directory:**
