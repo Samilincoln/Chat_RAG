@@ -1,12 +1,12 @@
-streamlit
+streamlit==1.30.0
+langchain-community==0.0.24
+chromadb==0.4.22
 python-decouple
 langchain
 langchain-groq
 beautifulsoup4
 requests
 nest-asyncio
-chromadb
-langchain-community
 sentence-transformers
 langchain_huggingface
 aiohttp
