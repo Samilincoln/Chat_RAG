@@ -1,40 +1,82 @@
-from langchain_community.document_loaders import AsyncChromiumLoader
-from langchain_community.document_transformers import Html2TextTransformer
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from itertools import chain
-from playwright.async_api import async_playwright
+import asyncio
+import aiohttp
+from bs4 import BeautifulSoup
+from langchain_core.documents import Document
+from typing import List
+import requests
 
-class CustomAsyncChromiumLoader(AsyncChromiumLoader):
-    async def _fetch(self, url):
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
-            await page.goto(url)
-            content = await page.content()
-            await browser.close()
-            return content
+async def fetch_url(session, url: str) -> str:
+    """Asynchronously fetch content from a URL."""
+    try:
+        async with session.get(url) as response:
+            return await response.text()
+    except Exception as e:
+        print(f"Error fetching {url}: {e}")
+        return ""
 
+def extract_text(html: str) -> str:
+    """Extract readable text from HTML content."""
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Remove script and style elements
+    for script in soup(["script", "style"]):
+        script.decompose()
+    
+    # Get text
+    text = soup.get_text()
+    
+    # Break into lines and remove leading and trailing space on each
+    lines = (line.strip() for line in text.splitlines())
+    
+    # Break multi-headlines into a line each
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    
+    # Drop blank lines
+    text = ' '.join(chunk for chunk in chunks if chunk)
+    
+    return text
 
-async def process_urls(urls, persist_directory="./chroma_db"):
-    # Clear ChromaDB when new links are added
+def split_text(text: str, chunk_size: int = 1000) -> List[str]:
+    """Split text into chunks of approximately equal size."""
+    words = text.split()
+    chunks = []
+    current_chunk = []
+    current_size = 0
+    
+    for word in words:
+        current_size += len(word) + 1  # +1 for space
+        if current_size > chunk_size:
+            chunks.append(' '.join(current_chunk))
+            current_chunk = [word]
+            current_size = len(word)
+        else:
+            current_chunk.append(word)
+    
+    if current_chunk:
+        chunks.append(' '.join(current_chunk))
+    
+    return chunks
 
-    loader = CustomAsyncChromiumLoader(urls)
-    docs = await loader.aload()
-
-    # ✅ Transform HTML to text
-    text_transformer = Html2TextTransformer()
-    transformed_docs = text_transformer.transform_documents(docs)
-
-    # ✅ Split text into chunks and retain metadata
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    split_docs_nested = [text_splitter.split_documents([doc]) for doc in transformed_docs]
-    split_docs = list(chain.from_iterable(split_docs_nested))
-
-    split_docs = []
-    for doc_list, original_doc in zip(split_docs_nested, transformed_docs):
-        for chunk in doc_list:
-            chunk.metadata["source"] = original_doc.metadata.get("source", "Unknown")  # Preserve URL
-            split_docs.append(chunk)
-
-    return split_docs
-
+async def process_urls(urls: List[str]) -> List[Document]:
+    """Process multiple URLs asynchronously and return documents."""
+    async with aiohttp.ClientSession() as session:
+        # Fetch all URLs asynchronously
+        html_contents = await asyncio.gather(
+            *[fetch_url(session, url) for url in urls]
+        )
+        
+        documents = []
+        for url, html in zip(urls, html_contents):
+            if html:  # Only process if we got content
+                text = extract_text(html)
+                chunks = split_text(text)
+                
+                # Create Document objects for each chunk
+                for chunk in chunks:
+                    doc = Document(
+                        page_content=chunk,
+                        metadata={"source": url}
+                    )
+                    documents.append(doc)
+        
+        return documents
