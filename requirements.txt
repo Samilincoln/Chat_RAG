@@ -8,6 +8,7 @@ nest-asyncio
 chromadb
 langchain-community
 sentence-transformers
+langchain_huggingface
 aiohttp
 toml
 python-dotenv
