@@ -1,3 +1,7 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 import streamlit as st
 from decouple import config
 import asyncio
@@ -10,7 +14,7 @@ from scraper.scraper import process_urls
 from embedding.vector_store import initialize_vector_store, clear_chroma_db
 from conversation.talks import clean_input, small_talks
 import nest_asyncio
-import sys
+
 
 nest_asyncio.apply()
 #Clearing ChromaDB at startup to clean up any previous data
