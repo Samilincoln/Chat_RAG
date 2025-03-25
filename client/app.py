@@ -14,6 +14,7 @@ from scraper.scraper import process_urls
 from embedding.vector_store import initialize_vector_store, clear_chroma_db
 from conversation.talks import clean_input, small_talks
 import nest_asyncio
+import sqlite3
 
 
 nest_asyncio.apply()
