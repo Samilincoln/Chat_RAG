@@ -12,3 +12,4 @@ langchain_huggingface
 aiohttp
 toml
 python-dotenv
+pysqlite3-binary
